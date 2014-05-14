@@ -5,11 +5,11 @@
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "precise64"
-  config.vm.network "forwarded_port", guest: 3000, host: 3001
+  configuration = config.vm
 
-  config.vm.hostname = "app.example.com"
-  config.vm.provision "shell", inline: "hostname app.example.com && hostname > /etc/hostname"
+  choose_vbox configuration
+  set_hostname configuration
+  set_http_forwarding configuration
 
   config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
 
@@ -35,6 +35,22 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", inline: setup_postgres_account
   config.vm.provision "shell", inline: install_emacs
 
+end
+
+def choose_vbox(configuration)
+  configuration.box = ENV['boxname'] || "precise64"
+end
+
+def set_hostname(configuration)
+  hostname = ENV['host'] || "app.example.com"
+  hostname = "#{hostname}.example.com" if hostname.split("\.").count == 1
+  configuration.hostname = hostname
+  configuration.provision "shell", inline: "hostname #{hostname} && #{hostname} > /etc/hostname"
+end
+
+def set_http_forwarding(configuration)
+  http_port = ENV['http_port'] || 3001
+  configuration.network "forwarded_port", guest: 3000, host: http_port
 end
 
 def install_emacs

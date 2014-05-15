@@ -5,58 +5,56 @@
 VAGRANTFILE_API_VERSION = "2"
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  configuration = config.vm
-
-  choose_vbox configuration
-  set_hostname configuration
-  set_http_forwarding configuration
-
   config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
 
-  config.vm.provision "shell", inline: "apt-get update"
+  config.vm.box = ENV['boxname'] || "precise64"
+  config.vm.hostname = get_hostname
+  config.vm.network "forwarded_port", guest: 3000, host: get_http_port
 
+  config.vm.provision "shell", inline: update_repos
   config.vm.provision "shell", inline: install_add_apt_repository
+
+  config.vm.provision "shell", inline: install_libxml2  #nokogiri
+  config.vm.provision "shell", inline: install_nginx
   config.vm.provision "shell", inline: install_git
   config.vm.provision "shell", inline: install_tree
   config.vm.provision "shell", inline: install_curl
   config.vm.provision "shell", inline: install_tmux
+  config.vm.provision "shell", inline: install_nodejs
+  config.vm.provision "shell", inline: install_emacs
+  config.vm.provision "shell", inline: install_postgresql
+  config.vm.provision "shell", inline: install_the_silver_searcher
 
   config.vm.provision "shell", inline: install_rvm, privileged: false
   config.vm.provision "shell", inline: install_ruby("2.1.1"), privileged: false
-  config.vm.provision "shell", inline: install_the_silver_searcher
-
   config.vm.provision "shell", inline: turn_off_gemdoc_install, privileged: false
   config.vm.provision "shell", inline: gem_install("bundler"), privileged: false
+  config.vm.provision "shell", inline: gem_install("capistrano"), privileged: false
   config.vm.provision "shell", inline: update_gems, privileged: false
 
-
-  config.vm.provision "shell", inline: install_nodejs
-  config.vm.provision "shell", inline: install_postgresql
   config.vm.provision "shell", inline: setup_postgres_account
-  config.vm.provision "shell", inline: install_emacs
-
 end
 
-def choose_vbox(configuration)
-  configuration.box = ENV['boxname'] || "precise64"
-end
-
-def set_hostname(configuration)
+def get_hostname
   hostname = ENV['host'] || "app.example.com"
-  hostname = "#{hostname}.example.com" if hostname.split("\.").count == 1
-  configuration.hostname = hostname
-  configuration.provision "shell", inline: "hostname #{hostname} && #{hostname} > /etc/hostname"
+  "#{hostname}.example.com" if hostname.split("\.").count == 1
 end
 
-def set_http_forwarding(configuration)
-  http_port = ENV['http_port'] || 3001
-  configuration.network "forwarded_port", guest: 3000, host: http_port
+def get_http_port
+  ENV['http_port'] || 3001
+end
+
+def update_repos
+  "apt-get update"
+end
+
+def install_nginx
+  "#{add_ppa("nginx/stable")} && #{install("nginx")}"
 end
 
 def install_emacs
   "#{add_ppa("cassou/emacs")} && #{install("emacs24-nox")}"
 end
-
 
 def setup_postgres_account
   copy_script = "sudo -u postgres cp /vagrant/create_postgresql_account.sh /var/lib/postgresql/init.sh"
@@ -64,16 +62,13 @@ def setup_postgres_account
   "#{copy_script} && #{run_script}"
 end
 
-
 def install_add_apt_repository
   install_dependencies(["python-software-properties", "python", "g++", "make"])
 end
 
-
 def add_ppa(ppa)
   "add-apt-repository -y  ppa:#{ppa} && apt-get update"
 end
-
 
 def install_postgresql
   add_deps = install_dependencies(["libpq-dev"])
@@ -88,56 +83,45 @@ def install_postgresql
   "#{add_deps} && #{make_list} && #{add_to_list} && #{add_repo_key} && #{set_locale} && #{install} && #{create_default_store} && #{start_it_up}"
 end
 
-
 def install_nodejs
   "#{add_ppa("chris-lea/node.js")} && #{install("nodejs")}"
 end
-
 
 def turn_off_gemdoc_install
   "echo \"gem: --no-document\" >> ~/.gemrc"
 end
 
-
 def install_rvm
   "\\curl -sSL https://get.rvm.io | bash -s stable" # && source /home/vagrant/.rvm/scripts/rvm"
 end
-
 
 def install_ruby(ver)
   "source /home/vagrant/.rvm/scripts/rvm && /home/vagrant/.rvm/bin/rvm install #{ver} && rvm --default use #{ver}"
 end
 
-
 def install_the_silver_searcher
   "dpkg -i /vagrant/the-silver-searcher_0.14-1_amd64.deb"
 end
-
 
 def git_clone(url, repo_name=nil)
   "git clone #{url} #{repo_name}"
 end
 
-
 def install(pkg)
   "apt-get install -y #{pkg}"
 end
-
 
 def gem_install(gem, ruby_version="2.1.1")
   "source /home/vagrant/.rvm/scripts/rvm && /home/vagrant/.rvm/rubies/ruby-#{ruby_version}/bin/gem install #{gem} --no-ri --no-rdoc"
 end
 
-
 def update_gems
   "source /home/vagrant/.rvm/scripts/rvm &&rvm gemset use global && gem update"
 end
 
-
 def install_dependencies(deps)
   deps.collect {|dep| install(dep)}.join("\n")
 end
-
 
 def method_missing(method_name, *args)
   super unless method_name =~ /install_/

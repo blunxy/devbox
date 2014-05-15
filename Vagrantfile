@@ -14,7 +14,15 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", inline: update_repos
   config.vm.provision "shell", inline: install_add_apt_repository
 
-  config.vm.provision "shell", inline: install_libxml2  #nokogiri
+  #nokogiri
+  config.vm.provision "shell", inline: install_dependencies(["libxslt-dev", "libxml2-dev"])
+
+  #capybara
+  config.vm.provision "shell", inline: install_dependencies(["libqt4-dev"])
+
+  #rmagick
+  config.vm.provision "shell", inline: install_dependencies(["libmagickwand-dev"])
+
   config.vm.provision "shell", inline: install_nginx
   config.vm.provision "shell", inline: install_git
   config.vm.provision "shell", inline: install_tree

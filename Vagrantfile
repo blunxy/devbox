@@ -9,7 +9,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
 
   config.vm.box = ENV['boxname'] || "precise64"
   config.vm.hostname = get_hostname
+  config.vm.synced_folder "/home/jpratt/.ssh", "/home/vagrant/.ssh"
   config.vm.network "forwarded_port", guest: 3000, host: get_http_port
+
 
   config.vm.provision "shell", inline: update_repos
   config.vm.provision "shell", inline: install_add_apt_repository
@@ -23,7 +25,9 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #rmagick
   config.vm.provision "shell", inline: install_dependencies(["libmagickwand-dev"])
 
+  config.vm.provision "shell", inline: install_openssh_server
   config.vm.provision "shell", inline: install_keychain
+  config.vm.provision "shell", inline: tweak_keychain, privileged: false
   config.vm.provision "shell", inline: install_nginx
   config.vm.provision "shell", inline: install_git
   config.vm.provision "shell", inline: install_tree
@@ -42,6 +46,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.provision "shell", inline: update_gems, privileged: false
 
   config.vm.provision "shell", inline: setup_postgres_account
+
 end
 
 def get_hostname

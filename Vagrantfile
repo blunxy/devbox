@@ -23,6 +23,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   #rmagick
   config.vm.provision "shell", inline: install_dependencies(["libmagickwand-dev"])
 
+  config.vm.provision "shell", inline: install_keychain
   config.vm.provision "shell", inline: install_nginx
   config.vm.provision "shell", inline: install_git
   config.vm.provision "shell", inline: install_tree

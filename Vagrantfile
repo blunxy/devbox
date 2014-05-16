@@ -97,6 +97,18 @@ def install_postgresql
   "#{add_deps} && #{make_list} && #{add_to_list} && #{add_repo_key} && #{set_locale} && #{install} && #{create_default_store} && #{start_it_up}"
 end
 
+def install_keychain
+  "#{install("keychain")} && sudo service ssh restart"
+end
+
+
+
+def tweak_keychain
+  "echo 'eval \`keychain --eval --agents ssh aki-basement\`' | sudo -u vagrant tee -a ~/.bash_profile"
+end
+
+
+
 def install_nodejs
   "#{add_ppa("chris-lea/node.js")} && #{install("nodejs")}"
 end

@@ -8,7 +8,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.ssh.shell = "bash -c 'BASH_ENV=/etc/profile exec bash'"
 
   config.vm.box = ENV['boxname'] || "precise64"
-  config.vm.hostname = get_hostname
+  config.vm.hostname = "jumpstart-tut"
   config.vm.synced_folder "/home/jpratt/.ssh", "/home/vagrant/.ssh"
   config.vm.network "forwarded_port", guest: 3000, host: get_http_port
 
@@ -52,6 +52,10 @@ end
 def get_hostname
   hostname = ENV['host'] || "app.example.com"
   "#{hostname}.example.com" if hostname.split("\.").count == 1
+end
+
+def install_openssh_server
+  "#{install("openssh-server")} && sudo service ssh restart"
 end
 
 def get_http_port
